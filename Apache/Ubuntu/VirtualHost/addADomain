@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#Example ./filename <Domain Name>
+#This script will work for TLS of Cloudflare
+
+echo Apache virtual host creation process has been initiated....
+
+domain=$1
+
+echo "We are adding virtual host for the domain "$domain
+
+#Create a new directory for the domain name
+mkdir -vp /home/$domain/public
+
+echo "This is "$domain "Initiated"  > /home/$domain/public/index.html
+
+
+#chown -R $USER:$USER /var/www/example.com/public_html
+
+echo "<VirtualHost *:80>
+    ServerAdmin webmaster@$domain
+    ServerName "$domain"
+    ServerAlias www."$domain"
+    DocumentRoot /home/$domain/public/
+    <Directory /home/$domain/public/>
+				Options Indexes FollowSymLinks MultiViews
+				AllowOverride all
+				Require all granted
+			</Directory>
+		ErrorLog /var/log/apache2/$domain.log
+    CustomLog /var/log/apache2/$domain.log combined
+</VirtualHost>
+
+<VirtualHost *:443>
+
+	ServerName "$domain"
+
+SSLEngine on
+SSLCertificateFile /etc/skl/$domain.pem
+SSLCertificateKeyFile /etc/skl/$domain.key
+        ServerAlias www.$domain
+
+	ServerAdmin webmaster@$domain
+	DocumentRoot /home/$domain/public/
+  <Directory /home/$domain/public/>
+				Options Indexes FollowSymLinks MultiViews
+				AllowOverride all
+				Require all granted
+			</Directory>
+	ErrorLog /var/log/apache2/$domain.log
+  CustomLog /var/log/apache2/$domain.log combined
+
+
+</VirtualHost>" > /etc/apache2/sites-available/$domain.conf
+
+
+
+
+#Create Symbolic Link from sites-available to site-enabled
+sudo ln -s /etc/apache2/sites-available/$domain.conf /etc/apache2/sites-enabled/
+
+apachectl configtest
+
+echo "Process is done now you can restart apache server"
