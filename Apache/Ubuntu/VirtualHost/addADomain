@@ -3,6 +3,12 @@
 #Example ./filename <Domain Name>
 #This script will work for TLS of Cloudflare
 
+#check for root permission
+if [ $EUID -ne 0 ]; then     
+	echo "$0 is not running as root. Try using sudo."; 
+	exit 2;
+else 
+
 echo Apache virtual host creation process has been initiated....
 
 domain=$1
@@ -15,7 +21,18 @@ mkdir -vp /home/$domain/public
 echo "This is "$domain "Initiated"  > /home/$domain/public/index.html
 
 
+#check for directory exist
+DIR="/etc/skl/"
+if [ -d "$DIR" ]; then
+   echo "'$DIR' found "
+else
+   mkdir -vp /etc/skl
+fi
+
 #chown -R $USER:$USER /var/www/example.com/public_html
+
+
+
 
 echo "<VirtualHost *:80>
     ServerAdmin webmaster@$domain
@@ -62,3 +79,5 @@ sudo ln -s /etc/apache2/sites-available/$domain.conf /etc/apache2/sites-enabled/
 apachectl configtest
 
 echo "Process is done now you can restart apache server"
+fi
+
