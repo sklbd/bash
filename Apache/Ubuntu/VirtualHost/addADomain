@@ -31,6 +31,10 @@ fi
 
 #chown -R $USER:$USER /var/www/example.com/public_html
 
+# Create SSL .pem & .Key File
+touch /etc/skl/$domain.pem
+touch /etc/skl/$domain.key
+
 
 
 
