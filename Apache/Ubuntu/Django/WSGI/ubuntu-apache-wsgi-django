@@ -16,7 +16,7 @@ projectName=$2
 wsgiFileDirectoryName=$3
 
 #=========================================================
-# Parameters
+# Colors in bash text
 #=========================================================
 RED="\e[31m"
 GREEN="\e[32m"
