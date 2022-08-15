@@ -1,0 +1,197 @@
+#!/bin/bash
+
+#=========================================================
+# Before run the script you need to change it's permission by using #chmod a+x
+# Syntex
+# ./filename <Domain Name> <Project Name> <Directory Name of WSGI File>
+# Example
+# ./filename example.com demo WSGI_Files_Directory
+#=========================================================
+
+#=========================================================
+# Parameters
+#=========================================================
+domain=$1
+projectName=$2
+wsgiFileDirectoryName=$3
+
+#=========================================================
+# Colors in bash text
+#=========================================================
+RED="\e[31m"
+GREEN="\e[32m"
+BLUE="\e[94m"
+YELLOW="\e[93m"
+ENDCOLOR="\e[0m"
+
+
+
+if [ -n "$1" ]; then
+  echo -e "${BLUE}Domain: $domain ${ENDCOLOR}"
+else
+  echo -e "${RED}Please provide a domain Name${ENDCOLOR}"
+  exit 1
+fi
+
+if [ -n "$2" ]; then
+  echo -e "${BLUE}Project: $projectName ${ENDCOLOR}"
+else
+  echo -e "${RED}Please provide a project name${ENDCOLOR}"
+  exit 1
+fi
+
+
+if [ -n "$3" ]; then
+  echo -e "${BLUE}WSGI: $wsgiFileDirectoryName ${ENDCOLOR}"
+else
+  echo -e "${RED}Please provide a WSGI file directory${ENDCOLOR}"
+  exit 1
+fi
+
+
+
+#=========================================================
+# Check if the user is root or has root's permission
+#=========================================================
+if [ $EUID -ne 0 ]; then     
+	echo "$0 is not permitted to perform this task. Try using sudo or use root user."; 
+	exit 2;
+else
+
+#=========================================================
+# Update Ubuntu
+#=========================================================
+sudo apt update -y
+
+#=========================================================
+# A unnecessary welcome message, though it has no work but looks cool, man!
+#=========================================================
+echo Ubuntu Apache Django WSGI installation has been initiated....
+
+
+#=========================================================
+# Installing necessary packages
+#=========================================================
+echo Installing necessary packages....
+sudo apt-get install apache2 apache2-utils libexpat1 ssl-cert python3 libapache2-mod-wsgi-py3 -y
+sudo apt install python3.10-venv -y
+echo Necessary packages installed successfully.
+
+
+#=========================================================
+# Enabling necessary things
+#=========================================================
+echo Enabling necessary things....
+sudo a2enmod wsgi
+sudo a2enmod ssl
+sudo a2enmod rewrite
+echo Necessary things has been enabled....
+
+
+#=========================================================
+# Create project file in /home directory
+# Your code of the project will be on /code directory
+#=========================================================
+mkdir -vp /home/$domain/$projectName/code
+
+APP_PATH="/home/$domain/$projectName/code"
+PROJECT_PATH="/home/$domain/$projectName"
+
+
+#=========================================================
+# Create TLS .pem & .Key File
+#=========================================================
+# mkdir -vp /etc/skl
+# touch /etc/skl/$domain.pem
+# touch /etc/skl/$domain.key
+
+#=========================================================
+# Create virtual env file
+#=========================================================
+python3 -m venv /home/$domain/$projectName/sklenv
+
+ENV_PATH="/home/$domain/$projectName/sklenv"
+
+echo "<VirtualHost *:80>
+#=========================================================
+# Point Domain to the server
+#=========================================================
+
+ServerAdmin webmaster@$domain
+ServerName $domain
+ServerAlias www.$domain
+
+#=========================================================
+# Set Static path
+#=========================================================
+
+
+Alias /static $APP_PATH/static
+<Directory $APP_PATH/static>
+Require all granted
+</Directory>
+
+#=========================================================
+# Set Media path
+#=========================================================
+
+
+Alias /media $APP_PATH/media
+<Directory $APP_PATH/media>
+Require all granted
+</Directory>
+
+
+
+#=========================================================
+# Set Alias for WSGI
+#=========================================================
+
+WSGIDaemonProcess $domain python-home=$ENV_PATH python-path=$APP_PATH
+WSGIProcessGroup $domain
+
+# This settings will allow JWT Token Authorisation
+WSGIPassAuthorization On
+
+# This is the path of the WSGI.py file in the application.
+WSGIScriptAlias / $APP_PATH/$wsgiFileDirectoryName/wsgi.py process-group=$domain
+
+<Directory $PROJECT_PATH>
+
+<Files wsgi.py>
+Require all granted
+</Files>
+</Directory>
+
+#=========================================================
+# TLS Configuration
+#=========================================================
+
+# SSLEngine on
+# SSLCertificateFile /etc/skl/$domain.pem
+# SSLCertificateKeyFile /etc/skl/$domain.key
+
+
+</VirtualHost>" > /etc/apache2/sites-available/$domain.conf
+
+# Create Symbolic Link from sites-available to site-enabled
+sudo ln -s /etc/apache2/sites-available/$domain.conf /etc/apache2/sites-enabled/
+
+echo -e "${GREEN}
+All the code executed successfully....
+${ENDCOLOR}
+Now follow below instructions
+${YELLOW}
+****************************************************
+1. Add key and pem file's text in respective files
+2. Pull/copy your code in /code directory
+3. Enable Virtual ENV using command: source ./sklenv/bin/activate
+4. Go to project directory and run pip install wheel and pip install -r requirments.txt
+5. Create .env file and copy valid information in it.
+6. Restart apache using command: systemctl restart apache2
+*****************************************************
+Enjoy your journey with Django !!!!
+${ENDCOLOR}
+"
+
+fi
