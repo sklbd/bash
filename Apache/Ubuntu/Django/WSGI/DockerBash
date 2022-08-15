@@ -53,10 +53,10 @@ fi
 #=========================================================
 # Check if the user is root or has root's permission
 #=========================================================
-if [ $EUID -ne 0 ]; then     
-	echo "$0 is not permitted to perform this task. Try using sudo or use root user."; 
-	exit 2;
-else
+# if [ $EUID -ne 0 ]; then     
+# 	echo "$0 is not permitted to perform this task. Try using sudo or use root user."; 
+# 	exit 2;
+# else
 
 #=========================================================
 # Update Ubuntu
@@ -194,4 +194,4 @@ Enjoy your journey with Django !!!!
 ${ENDCOLOR}
 "
 
-fi
+# fi
