@@ -1,19 +1,23 @@
 #!/bin/bash
 
-#=========================================================
+#====================================================================================
+# This script generates a Dockerfile and it's necessary directory and files for 
+# Django Dockerization using Ubuntu Apache WSGI
 # Before run the script you need to change it's permission by using #chmod a+x
 # Syntex
 # ./filename <Domain Name> <Project Name> <Directory Name of WSGI File>
 # Example
-# ./filename example.com demo WSGI_Files_Directory
-#=========================================================
+# ./filename example.com demo WSGI_Files_Directory_name  
+#====================================================================================
 
 #=========================================================
 # Parameters
 #=========================================================
-domain=$1
-projectName=$2
-wsgiFileDirectoryName=$3
+DOMAIN=$1
+PROJECT_NAME=$2
+WSGI_FILE_DIRECTORY=$3
+sklExtraVariable="PATH"
+
 
 #=========================================================
 # Colors in bash text
@@ -27,14 +31,14 @@ ENDCOLOR="\e[0m"
 
 
 if [ -n "$1" ]; then
-  echo -e "${BLUE}Domain: $domain ${ENDCOLOR}"
+  echo -e "${BLUE}Domain: $DOMAIN ${ENDCOLOR}"
 else
   echo -e "${RED}Please provide a domain Name${ENDCOLOR}"
   exit 1
 fi
 
 if [ -n "$2" ]; then
-  echo -e "${BLUE}Project: $projectName ${ENDCOLOR}"
+  echo -e "${BLUE}Project: $PROJECT_NAME ${ENDCOLOR}"
 else
   echo -e "${RED}Please provide a project name${ENDCOLOR}"
   exit 1
@@ -42,156 +46,143 @@ fi
 
 
 if [ -n "$3" ]; then
-  echo -e "${BLUE}WSGI: $wsgiFileDirectoryName ${ENDCOLOR}"
+  echo -e "${BLUE}WSGI: $WSGI_FILE_DIRECTORY ${ENDCOLOR}"
 else
-  echo -e "${RED}Please provide a WSGI file directory${ENDCOLOR}"
+  echo -e "${RED}Please provide the WSGI file's directory name${ENDCOLOR}"
   exit 1
 fi
 
+#=========================================================
+# Create project Django project
+#=========================================================
+mkdir -vp ./code
 
 
-#=========================================================
-# Check if the user is root or has root's permission
-#=========================================================
-# if [ $EUID -ne 0 ]; then     
-# 	echo "$0 is not permitted to perform this task. Try using sudo or use root user."; 
-# 	exit 2;
-# else
+echo " 
+FROM ubuntu:latest
 
-#=========================================================
-# Update Ubuntu
-#=========================================================
-sudo apt update -y
+LABEL author=\"Shakil Ahamed\"
+LABEL maintainer=\"sklahamed@gmail.com\"
 
-#=========================================================
-# A unnecessary welcome message, though it has no work but looks cool, man!
-#=========================================================
-echo Ubuntu Apache Django WSGI installation has been initiated....
+#====================================================================================
+# Update your OS
+#====================================================================================
+RUN apt update -y
 
 
-#=========================================================
-# Installing necessary packages
-#=========================================================
-echo Installing necessary packages....
-sudo apt-get install apache2 apache2-utils libexpat1 ssl-cert python3 libapache2-mod-wsgi-py3 -y
-sudo apt install python3.10-venv -y
-echo Necessary packages installed successfully.
+#====================================================================================
+# Install necessary packages
+#====================================================================================
+RUN apt-get install apache2 apache2-utils libexpat1 ssl-cert python3 libapache2-mod-wsgi-py3 nano -y
+RUN apt install python3.10-venv -y
 
 
-#=========================================================
-# Enabling necessary things
-#=========================================================
-echo Enabling necessary things....
-sudo a2enmod wsgi
-sudo a2enmod ssl
-sudo a2enmod rewrite
-echo Necessary things has been enabled....
+#====================================================================================
+# Add customized apache configuration to the container
+#====================================================================================
+ADD ./000-default.conf /etc/apache2/sites-available/
 
 
-#=========================================================
-# Create project file in /home directory
-# Your code of the project will be on /code directory
-#=========================================================
-mkdir -vp /home/$domain/$projectName/code
+#====================================================================================
+# Create directory for the project
+# I follow a conventions where /home/<domain name>/<project name>/code
+# Note: You can modify it to your own choice. I like it in this way.
+#====================================================================================
+RUN mkdir -vp /home/$DOMAIN/$PROJECT_NAME/code
 
-APP_PATH="/home/$domain/$projectName/code"
-PROJECT_PATH="/home/$domain/$projectName"
+#====================================================================================
+# Create a virtual environment for the project.
+# Note: It is funny to create a virtual environment in a container where a container itself is an isolated virtual machine.
+# However, to run the application without VENV remove below line and add RUN ln /usr/bin/python3 /usr/bin/python instead
+#====================================================================================
+RUN python3 -m venv /home/$DOMAIN/$PROJECT_NAME/sklenv
 
+
+#====================================================================================
+# Copy your code from host to the container
+#====================================================================================
+COPY ./code /home/$DOMAIN/$PROJECT_NAME/code
+
+
+#====================================================================================
+# Activate VENV. It is alternative to the command: source ./<venv>/bin/activate
+#====================================================================================
+ENV PATH=\"/home/$DOMAIN/$PROJECT_NAME/sklenv/bin:$"$sklExtraVariable\""
+
+#====================================================================================
+# Set the current working directory into the container.
+# Usually after activating our VENV we go to the directory where manage.py is located this is what we are doing here.
+# This would be the directory where manage.py is located.
+# Similar to command, <VENV>: cd /home/localhost/deployment/code
+#====================================================================================
+WORKDIR /home/$DOMAIN/$PROJECT_NAME/code
+
+#====================================================================================
+# Magic command to install project's dependency
+#====================================================================================
+RUN pip install wheel
+RUN pip install -r requirements.txt
+
+#====================================================================================
+# We would like to run the application in port 80 of the container
+#====================================================================================
+EXPOSE 80
+
+#====================================================================================
+# Run apache
+#====================================================================================
+CMD [\"apache2ctl\", \"-D\", \"FOREGROUND\"]
+
+
+" > ./Dockerfile
+
+echo "
+#=========================================================
+# Enable WSGI for Project
+# WSGIPythonHome is the location of your ENV file
+# WSGIPythonPath is the location of your code where manage.py is located
+#=========================================================
+WSGIPythonHome /home/$DOMAIN/$PROJECT_NAME/sklenv
+WSGIPythonPath /home/$DOMAIN/$PROJECT_NAME/code
 
 #=========================================================
-# Create TLS .pem & .Key File
+#
+# Port PORT 80
+#
 #=========================================================
-# mkdir -vp /etc/skl
-# touch /etc/skl/$domain.pem
-# touch /etc/skl/$domain.key
+
+<VirtualHost *:80>
 
 #=========================================================
-# Create virtual env file
+# Set document root
 #=========================================================
-python3 -m venv /home/$domain/$projectName/sklenv
+DocumentRoot /home/$DOMAIN/$PROJECT_NAME
 
-ENV_PATH="/home/$domain/$projectName/sklenv"
-
-echo "<VirtualHost *:80>
 #=========================================================
 # Point Domain to the server
 #=========================================================
+ServerAdmin webmaster@$DOMAIN
+ServerName $DOMAIN
 
-ServerAdmin webmaster@$domain
-ServerName $domain
-ServerAlias www.$domain
 
 #=========================================================
-# Set Static path
+# Static
 #=========================================================
-
-
-Alias /static $APP_PATH/static
-<Directory $APP_PATH/static>
+Alias /static /home/$DOMAIN/$PROJECT_NAME/code/static
+<Directory /home/$DOMAIN/$PROJECT_NAME/code/static>
 Require all granted
 </Directory>
-
-#=========================================================
-# Set Media path
-#=========================================================
-
-
-Alias /media $APP_PATH/media
-<Directory $APP_PATH/media>
-Require all granted
-</Directory>
-
 
 
 #=========================================================
 # Set Alias for WSGI
 #=========================================================
-
-WSGIDaemonProcess $domain python-home=$ENV_PATH python-path=$APP_PATH
-WSGIProcessGroup $domain
-
-# This settings will allow JWT Token Authorisation
-WSGIPassAuthorization On
-
-# This is the path of the WSGI.py file in the application.
-WSGIScriptAlias / $APP_PATH/$wsgiFileDirectoryName/wsgi.py process-group=$domain
-
-<Directory $PROJECT_PATH>
-
+WSGIScriptAlias / /home/$DOMAIN/$PROJECT_NAME/code/backend/wsgi.py
+<Directory /home/$DOMAIN/$PROJECT_NAME>
 <Files wsgi.py>
 Require all granted
 </Files>
 </Directory>
 
-#=========================================================
-# TLS Configuration
-#=========================================================
-
-# SSLEngine on
-# SSLCertificateFile /etc/skl/$domain.pem
-# SSLCertificateKeyFile /etc/skl/$domain.key
-
-
-</VirtualHost>" > /etc/apache2/sites-available/$domain.conf
-
-# Create Symbolic Link from sites-available to site-enabled
-sudo ln -s /etc/apache2/sites-available/$domain.conf /etc/apache2/sites-enabled/
-
-echo -e "${GREEN}
-All the code executed successfully....
-${ENDCOLOR}
-Now follow below instructions
-${YELLOW}
-****************************************************
-1. Add key and pem file's text in respective files
-2. Pull/copy your code in /code directory
-3. Enable Virtual ENV using command: source ./sklenv/bin/activate
-4. Go to project directory and run pip install wheel and pip install -r requirments.txt
-5. Create .env file and copy valid information in it.
-6. Restart apache using command: systemctl restart apache2
-*****************************************************
-Enjoy your journey with Django !!!!
-${ENDCOLOR}
-"
-
-# fi
+</VirtualHost>
+" > ./000-default.conf
