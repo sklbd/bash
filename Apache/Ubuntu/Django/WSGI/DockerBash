@@ -5,9 +5,9 @@
 # Django Dockerization using Ubuntu Apache WSGI
 # Before run the script you need to change it's permission by using #chmod a+x
 # Syntex
-# ./filename <Domain Name> <Project Name> <Directory Name of WSGI File>
+# ./filename <Domain Name> <Project Name> <Directory Name of WSGI File> <HOST_AND_CONTAINER_PORT>
 # Example
-# ./filename example.com demo WSGI_Files_Directory_name  
+# ./filename example.com demo WSGI_Files_Directory_name 80:80
 #====================================================================================
 
 #=========================================================
@@ -17,6 +17,7 @@ DOMAIN=$1
 PROJECT_NAME=$2
 WSGI_FILE_DIRECTORY=$3
 sklExtraVariable="PATH"
+HOST_AND_CONTAINER_PORT=$4
 
 
 #=========================================================
@@ -186,3 +187,12 @@ Require all granted
 
 </VirtualHost>
 " > ./000-default.conf
+
+echo "
+version: \"3.9\"
+services:
+  django:
+    build: .
+    ports:
+      - \"HOST_AND_CONTAINER_PORT\"
+" > ./docker-compose.yml
