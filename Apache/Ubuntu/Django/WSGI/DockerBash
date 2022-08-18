@@ -194,5 +194,5 @@ services:
   django:
     build: .
     ports:
-      - \"HOST_AND_CONTAINER_PORT\"
+      - \"$HOST_AND_CONTAINER_PORT\"
 " > ./docker-compose.yml
