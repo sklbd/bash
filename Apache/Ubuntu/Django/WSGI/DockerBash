@@ -54,7 +54,7 @@ else
 fi
 
 #=========================================================
-# Create project Django project
+# Create Django project code directory
 #=========================================================
 mkdir -vp ./code
 
