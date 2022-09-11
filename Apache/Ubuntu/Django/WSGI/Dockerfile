@@ -63,6 +63,12 @@ RUN pip install wheel
 RUN pip install -r requirements.txt
 
 #====================================================================================
+# To solve an error
+# AH00558: apache2: Could not reliably determine the server's fully qualified domain 
+#====================================================================================
+RUN   echo "ServerName 127.0.0.1" >> /etc/apache2/apache2.conf
+
+#====================================================================================
 # We would like to run the application in port 80 of the container
 #====================================================================================
 EXPOSE 80
