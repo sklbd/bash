@@ -178,7 +178,7 @@ Require all granted
 #=========================================================
 # Set Alias for WSGI
 #=========================================================
-WSGIScriptAlias / /home/$DOMAIN/$PROJECT_NAME/code/backend/wsgi.py
+WSGIScriptAlias / /home/$DOMAIN/$PROJECT_NAME/code/$WSGI_FILE_DIRECTORY/wsgi.py
 <Directory /home/$DOMAIN/$PROJECT_NAME>
 <Files wsgi.py>
 Require all granted
