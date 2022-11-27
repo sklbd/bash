@@ -3,7 +3,7 @@
 #=========================================================
 # Before run the script you need to change it's permission by using #chmod a+x
 # Syntex
-# ./filename <Domain Name> <Project Name> <Directory Name of WSGI File>
+# ./filename <Domain Name> <Project Name> <Directory Name of WSGI File> <Static Files Directory Name>
 # Example
 # ./filename example.com demo WSGI_Files_Directory
 #=========================================================
@@ -14,6 +14,7 @@
 domain=$1
 projectName=$2
 wsgiFileDirectoryName=$3
+staticFilesDirectory=$4
 
 #=========================================================
 # Colors in bash text
@@ -45,6 +46,13 @@ if [ -n "$3" ]; then
   echo -e "${BLUE}WSGI: $wsgiFileDirectoryName ${ENDCOLOR}"
 else
   echo -e "${RED}Please provide a WSGI file directory${ENDCOLOR}"
+  exit 1
+fi
+
+if [ -n "$4" ]; then
+  echo -e "${BLUE}WSGI: $staticFilesDirectory ${ENDCOLOR}"
+else
+  echo -e "${RED}Please provide a static file directory${ENDCOLOR}"
   exit 1
 fi
 
@@ -122,8 +130,8 @@ ServerAlias www.$domain
 #=========================================================
 # Set Static path
 #=========================================================
-Alias /static $APP_PATH/static
-<Directory $APP_PATH/static>
+Alias /static $APP_PATH/$staticFilesDirectory
+<Directory $APP_PATH/$staticFilesDirectory>
 Require all granted
 </Directory>
 #=========================================================
