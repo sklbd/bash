@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  laravel:
+    build: .
+    container_name: my-laravel-container
+    ports:
+      - "80:80"
+    volumes:
+      - ./code:/home/domain/demoProject
